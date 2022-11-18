@@ -3,6 +3,8 @@ from matplotlib import pyplot as plt
 from scipy import io
 
 
+verbose = False
+
 class T1():
     def __init__(self, alpha, beta) -> None:
         self.P = None
@@ -66,6 +68,7 @@ class T1():
         self.t_list.clear()
         x = x0
         v = v0
+        self.t_list.append(0)
         while True:
             self.x_list.append(x.tolist())
             self.v_list.append(v.tolist())
@@ -80,8 +83,8 @@ class T1():
             x = x + t * dx
             v = v + t * dv
         print('iters: ', len(self.x_list) - 1)
-        print('x*: ', x.tolist())
-        print('v*: ', v.tolist())
+        print('x*: ', x.tolist()[-1])
+        print('v*: ', v.tolist()[-1])
         print('p*: ', self.f(x))
 
         return self.x_list, self.v_list, self.f_list, self.t_list
@@ -96,6 +99,29 @@ class T1():
         self.LHS_inv = np.linalg.inv(self.LHS)
         self.m, self.n = m, n
 
+def plot_figure(f_list, t_list):
+    plt.figure()
+
+    # plot curve 1
+    plt.subplot(1, 2, 1)
+    plt.ylabel(r"$\log(f(x_k)-p^{*})$")
+    plt.xlabel(r"$k$")
+    plt.plot(np.log(f_list - (np.min(f_list) - 1e-10)), marker='o', markersize=2.0, color='coral', linewidth=1.0)
+    plt.xlim([0, 1])
+    plt.grid('on')
+    plt.title(r"$\log(f(x_k)-p^{*})$ versus $k$")
+
+    # plot curve 2
+    plt.subplot(1, 2, 2)
+    plt.ylabel(r"$t_k$")
+    plt.xlabel(r"$k$")
+    plt.plot(t_list, marker='o', markersize=2.0, color='coral', linewidth=1.0)
+    plt.xlim([0, 1])
+    plt.grid('on')
+    plt.title(r"$t_k$ versus $k$")
+
+    plt.show()
+
 
 if __name__ == '__main__':
     alpha = 0.4
@@ -103,4 +129,5 @@ if __name__ == '__main__':
     m, n = 100, 200
     problem = T1(alpha=alpha,
                  beta=beta)
-    problem.solve(x0=np.zeros(n,), v0=np.zeros(m,))
+    x_list, v_list, f_list, t_list = problem.solve(x0=np.zeros(n,), v0=np.zeros(m,))
+    plot_figure(f_list, t_list)

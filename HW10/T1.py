@@ -83,8 +83,8 @@ class T1():
             x = x + t * dx
             v = v + t * dv
         print('iters: ', len(self.x_list) - 1)
-        print('x*: ', x.tolist()[-1])
-        print('v*: ', v.tolist()[-1])
+        print('x*: ', x.tolist())
+        print('v*: ', v.tolist())
         print('p*: ', self.f(x))
 
         return self.x_list, self.v_list, self.f_list, self.t_list

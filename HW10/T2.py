@@ -1,4 +1,5 @@
 import argparse
+from copy import deepcopy
 import numpy as np
 from matplotlib import pyplot as plt
 from scipy import io
@@ -95,9 +96,12 @@ class SubProblem():
         x = x0
         v = v0
 
+        f_list = []
+
         # feasible start Newton method
         if np.linalg.norm(self.A @ x - self.b) <= 1e-8:
             while True:
+                f_list.append(self.f0(x))
                 hessian = self.hessian(t, x)
                 lhs = np.block([[hessian, self.A.T], [self.A, np.zeros((self.m, self.m))]])
                 rhs = np.r_[-self.gradient(t, x), np.zeros(self.m,)]
@@ -118,6 +122,7 @@ class SubProblem():
         # infeasible start Newton method
         else:
             while True:
+                f_list.append(self.f0(x))
                 hessian = self.hessian(t, x)
                 lhs = np.block([[hessian, self.A.T], [self.A, np.zeros((self.m, self.m))]])
                 rhs = self.r(t, x, v)
@@ -134,7 +139,7 @@ class SubProblem():
         la = 1 / (t * x)
         v = v / t
         
-        return x, la, v, self.f0(x)
+        return x, la, v, self.f0(x), f_list
 
     def pd_linesearch(self, x, la, v, t, dx, dla, dv):
         # determine the largest s
@@ -229,12 +234,13 @@ class T2():
                 print('t: ', t)
             self.t_list.append(t)
             # solve sub-problem
-            x_star, la_star, v_star, f_star = self.subp.solve(t, x, v)
-            self.f_list.append(f_star)
+            x_star, la_star, v_star, f_star, f_list = self.subp.solve(t, x, v)
+            self.f_list = self.f_list + f_list
+            self.t_list = self.t_list + [t] * len(f_list)
             # update
             x = x_star
             if self.subp.n / t < self.eps:
-                return x_star, la_star, v_star, self.t_list
+                return x_star, la_star, v_star, self.t_list, self.f_list
             else:
                 t = self.miu * t
 
@@ -242,16 +248,25 @@ class T2():
         x_star, la_star, v_star, r_pri, r_dual, yita = self.subp.solve_pd(miu=self.miu)
         return x_star, la_star, v_star, r_pri, r_dual, yita
 
-def plot_barrier(t_list):
+def plot_barrier(t_list, f_list):
     plt.figure()
 
     # plot curve
+    plt.subplot(1, 2, 1)
     plt.ylabel(r"$\log(\frac{n}{t})$")
     plt.xlabel(r"$k$")
-    plt.plot(np.log(200 / np.array(t_list)), marker='o', markersize=2.0, color='coral', linewidth=1.0)
-    plt.xlim([0, 11])
-    plt.grid('on')
     plt.title(r"$\log(\hat{\eta})$" + ' versus ' + r"$k$")
+    plt.plot(np.log(200 / np.array(t_list)), marker='o', markersize=2.0, color='coral', linewidth=1.0)
+    plt.xlim([0, 236])
+    plt.grid('on')
+    
+    plt.subplot(1, 2, 2)
+    plt.ylabel(r"$f$")
+    plt.xlabel(r"$k$")
+    plt.title(r"function value versus $k$")
+    plt.plot(f_list)
+    plt.xlim([0, 236])
+    plt.grid('on')
 
     plt.show()
 
@@ -260,13 +275,13 @@ def plot_pd(r_pri, r_dual, yita):
 
     # plot curve 1
     plt.subplot(1, 2, 1)
-    plt.ylabel(r"$\log(\hat{\eta})$")
+    plt.ylabel(r"$\hat{\eta}$")
     plt.xlabel(r"$k$")
     plt.plot(yita, marker='o', markersize=2.0, color='coral', linewidth=1.0)
     plt.xlim([0, 152])
     plt.grid('on')
     plt.semilogy()
-    plt.title(r"$\log(\hat{\eta})$" + ' versus ' + r"$k$")
+    plt.title(r"$\hat{\eta})$" + ' versus ' + r"$k$")
 
     # plot curve 2
     plt.subplot(1, 2, 2)
@@ -297,12 +312,12 @@ if __name__ == '__main__':
         verbose = True
     
     if args.method == 'barrier':
-        x_star, la_star, v_star, t_list = problem.solve_barrier(t0=1)
+        x_star, la_star, v_star, t_list, f_list = problem.solve_barrier(t0=1)
         print('x_star: ', x_star)
         print('la_star: ', la_star)
         print('v_star: ', v_star)
         print('p_star: ', problem.subp.f0(x_star))
-        plot_barrier(t_list)
+        plot_barrier(t_list, f_list)
     elif args.method == 'pd':
         x_star, la_star, v_star, r_pri, r_dual, yita = problem.solve_pd()
         print('x_star: ', x_star)

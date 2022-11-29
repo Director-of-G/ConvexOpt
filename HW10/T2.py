@@ -100,6 +100,7 @@ class SubProblem():
 
         # feasible start Newton method
         if np.linalg.norm(self.A @ x - self.b) <= 1e-8:
+            import pdb; pdb.set_trace()
             while True:
                 f_list.append(self.f0(x))
                 hessian = self.hessian(t, x)
@@ -136,6 +137,7 @@ class SubProblem():
                 # if np.linalg.norm(self.A @ x - self.b) > 1e-8:
                 x = x + step * dx
                 v = v + step * dv
+                print(step)
         la = 1 / (t * x)
         v = v / t
         
